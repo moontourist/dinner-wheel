@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dinner Wheel</title>
+  <meta name="description" content="Spin for tonight's dinner from what's in the pantry, plan the week, and generate new recipe ideas.">
+  <meta name="theme-color" content="#F6F1E7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151A17" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23D9502B'/%3E%3Cpath d='M32 32 L32 4 A28 28 0 0 1 56 46 Z' fill='%23F2A541'/%3E%3Cpath d='M32 32 L56 46 A28 28 0 0 1 8 46 Z' fill='%232F6B4F'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23F6EEDD'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <h1>Dinner Wheel</h1>
+        <p class="tagline">Tonight's dinner, from what you've already got.</p>
+      </div>
+      <ul class="rules" aria-label="House rules">
+        <li>Protein + carb + veg</li>
+        <li>Batch cook twice a week</li>
+        <li>Kitchen closes after dinner</li>
+      </ul>
+    </div>
+  </header>
+
+  <nav class="tabs wrap" role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="tonight" aria-selected="true" aria-controls="panel-tonight">Tonight</button>
+    <button role="tab" data-tab="week" aria-selected="false" aria-controls="panel-week" tabindex="-1">This week</button>
+    <button role="tab" data-tab="ideas" aria-selected="false" aria-controls="panel-ideas" tabindex="-1">New ideas</button>
+    <button role="tab" data-tab="recipes" aria-selected="false" aria-controls="panel-recipes" tabindex="-1">Recipes</button>
+    <button role="tab" data-tab="pantry" aria-selected="false" aria-controls="panel-pantry" tabindex="-1">Pantry</button>
+  </nav>
+
+  <main class="wrap">
+    <section id="panel-tonight" role="tabpanel" aria-label="Tonight">
+      <div class="tonight-grid">
+        <div class="wheel-col">
+          <div id="wheel" class="wheel-stage">
+            <p id="wheel-empty" class="wheel-empty" hidden>Nothing on the wheel. Check your <button class="link" data-tab-jump="pantry" onclick="document.querySelector('[data-tab=pantry]').click()">pantry</button> or try <button class="link" onclick="document.querySelector('[data-tab=ideas]').click()">new ideas</button>.</p>
+          </div>
+          <div class="wheel-controls">
+            <button id="spin" class="btn primary big" data-action="spin">Spin</button>
+            <div class="wheel-meta">
+              <p id="wheel-count" class="muted small"></p>
+              <label class="toggle"><input type="checkbox" id="treats"> <span>Include occasional meals</span></label>
+            </div>
+          </div>
+          <section class="recent">
+            <h3>Recently cooked</h3>
+            <div id="history"></div>
+          </section>
+        </div>
+        <article id="tonight-result" class="result-card" aria-live="polite"></article>
+      </div>
+    </section>
+
+    <section id="panel-week" role="tabpanel" aria-label="This week" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>This week</h2>
+          <p class="muted">Six dinners and a leftovers night, mixed so the same protein never lands two nights in a row.</p>
+        </div>
+        <button class="btn primary" data-action="plan-week">Plan my week</button>
+      </div>
+      <div id="week-body"></div>
+    </section>
+
+    <section id="panel-ideas" role="tabpanel" aria-label="New ideas" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>New ideas</h2>
+          <p class="muted">Fresh combinations from your pantry. Save the good ones and they join the rotation.</p>
+        </div>
+        <button class="btn primary" data-action="gen-ideas">Give me 3 ideas</button>
+      </div>
+      <div id="ideas-body"></div>
+    </section>
+
+    <section id="panel-recipes" role="tabpanel" aria-label="Recipes" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Recipes</h2>
+          <p class="muted">Everything in the rotation, sorted by what you can make right now.</p>
+        </div>
+      </div>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Filter recipes">
+          <button data-filter="ready" aria-pressed="true">Ready now</button>
+          <button data-filter="almost" aria-pressed="false">Missing 1 to 2</button>
+          <button data-filter="all" aria-pressed="false">All</button>
+        </div>
+        <input id="recipe-search" type="search" placeholder="Search recipes or ingredients" aria-label="Search recipes">
+      </div>
+      <div id="recipes-body" class="recipes"></div>
+    </section>
+
+    <section id="panel-pantry" role="tabpanel" aria-label="Pantry" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Pantry</h2>
+          <p class="muted"><span id="pantry-count"></span>. Tap to mark what's in the kitchen. Saved in this browser.</p>
+        </div>
+        <button class="btn ghost" data-action="reset-pantry">Reset pantry</button>
+      </div>
+      <form id="add-ing" class="add-ing">
+        <input id="ing-name" type="text" placeholder="Add an ingredient (e.g. salmon, zucchini)" aria-label="Ingredient name" required maxlength="40">
+        <select id="ing-role" aria-label="What kind of ingredient">
+          <option value="protein">Protein</option>
+          <option value="carb">Carb</option>
+          <option value="veg" selected>Vegetable / beans</option>
+          <option value="sauce">Sauce / flavor</option>
+          <option value="other">Other</option>
+        </select>
+        <button class="btn primary" type="submit">Add</button>
+      </form>
+      <div id="pantry-body"></div>
+    </section>
+  </main>
+
+  <footer class="wrap site-footer">
+    <p class="muted small">Assumes oil, salt, pepper, and basic spices. Highlighted chips are occasional foods.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
